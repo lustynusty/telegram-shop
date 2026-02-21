@@ -1,7 +1,4 @@
-"""
-handlers/categories.py – Управление категориями товаров (создание, редактирование, скрытие).
-"""
-
+# handlers/categories.py
 from aiogram import types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -29,9 +26,8 @@ def is_admin(user_id):
     return user_id == ADMIN_CHAT_ID
 
 async def cmd_categories(message: types.Message):
-    """Показать список активных категорий"""
     if not is_admin(message.from_user.id):
-        await message.answer(f"{EMOJI['warning']} Нет прав")
+        await message.answer(f"{EMOJI['warning']} У вас нет прав администратора.")
         return
     cats = get_all_categories(show_hidden=False)
     if not cats:
@@ -55,7 +51,6 @@ async def cmd_categories(message: types.Message):
     await message.answer(text, parse_mode="Markdown", reply_markup=builder.as_markup())
 
 async def show_hidden_categories(callback: types.CallbackQuery):
-    """Показать скрытые категории"""
     conn = sqlite3.connect("shop.db")
     cur = conn.cursor()
     cur.execute("SELECT id, name, description, icon FROM categories WHERE is_hidden=1 ORDER BY name")
@@ -80,13 +75,11 @@ async def show_hidden_categories(callback: types.CallbackQuery):
     await callback.answer()
 
 async def show_category_admin(callback: types.CallbackQuery, state: FSMContext):
-    """Управление конкретной категорией (админка)"""
     cid = int(callback.data.split("_")[-1])
     cat = get_category(cid)
     if not cat:
         await callback.answer(f"{EMOJI['error']} Не найдена")
         return
-    # Проверим, скрыта ли
     conn = sqlite3.connect("shop.db")
     cur = conn.cursor()
     cur.execute("SELECT is_hidden FROM categories WHERE id=?", (cid,))
@@ -296,7 +289,6 @@ def register_handlers(dp):
     dp.callback_query.register(confirm_delete, lambda c: c.data.startswith("confirm_delete_"))
     dp.callback_query.register(cancel_delete, lambda c: c.data == "cancel_delete")
     dp.callback_query.register(lambda c: cmd_categories(c.message), lambda c: c.data == "back_to_categories")
-
     dp.message.register(process_category_name, CategoryStates.waiting_for_name)
     dp.message.register(process_category_description, CategoryStates.waiting_for_description)
     dp.message.register(process_category_icon, CategoryStates.waiting_for_icon)
